@@ -1,5 +1,5 @@
 # stage1 as builder
-FROM node:16.13.2 as builder
+FROM node:18.14.2 as builder
 
 # copy the package.json to install dependencies
 COPY package.json yarn.lock ./
