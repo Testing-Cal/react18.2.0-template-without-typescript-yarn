@@ -1,7 +1,11 @@
 import React, { Component } from 'react';
-import { render } from 'react-dom';
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter as Router, Route, Link, Routes } from 'react-router-dom';
 import Home from './home';
 import './style.css';
+import Dashboard from "./dashboard-page";
+import Listing from "./listing-page";
+import PageNotFound from './page-not-found'
 
 class App extends Component {
   constructor() {
@@ -12,15 +16,31 @@ class App extends Component {
   }
 
   render() {
-    return (
-      <div>
-        <Home name={this.state.name} />
-        <p>
-          Start editing to see some magic happen :)
-        </p>
-      </div>
-    );
+    const basePath = process.env.REACT_APP_CONTEXT;
+      return (
+          <Router basename={basePath}>
+              <div>
+                  <nav style={{margin: '20px'}}>
+                      <Link to="/" style={{marginRight: '20px'}}>Home</Link>
+                      <Link to="/dashboard" style={{marginRight: '20px'}}>Dashboard</Link>
+                      <Link to="/listing">Listing</Link>
+                  </nav>
+                  <Routes>
+                      <Route path="/" element={<Home name={this.state.name}/>} />
+                      <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/listing" element={<Listing />} />
+                      <Route path="*" element={<PageNotFound />} />
+                  </Routes>
+              </div>
+          </Router>
+      )
   }
 }
 
-render(<App />, document.getElementById('root'));
+const rootElement = document.getElementById('root');
+if (rootElement) {
+  const root = createRoot(rootElement);
+  root.render(<App />);
+} else {
+  console.error("Root element not found.");
+}
