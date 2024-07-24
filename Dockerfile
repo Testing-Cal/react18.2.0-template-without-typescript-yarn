@@ -4,7 +4,7 @@ ARG CONTEXT='/'
 # copy the package.json to install dependencies
 COPY package.json package-lock.json ./
 
-# Install the dependencies and make the folder
+# Install the dependencies and make the folders
 RUN npm install && mkdir /react-ui && mv ./node_modules ./react-ui
 
 WORKDIR /react-ui
