@@ -2,7 +2,7 @@
 FROM node:20.11.1 as builder
 ARG CONTEXT='/'
 # copy the package.json to install dependencies
-COPY package.json yarn.lock ./
+COPY package.json  ./
 
 # Install the dependencies and make the folders
 RUN yarn config set "strict-ssl" false -g && yarn install && mkdir /react-ui && mv ./node_modules ./react-ui
@@ -29,7 +29,7 @@ ARG CONTEXT='/'
 
 # Copy from the stahg 1
 COPY --from=builder /react-ui/build /react-ui/build
-COPY ./server.js yarn.lock /react-ui
+COPY ./server.js  /react-ui
 WORKDIR /react-ui
 
 # USER lazsa
