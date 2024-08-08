@@ -1,11 +1,11 @@
 # stage1 as builder
-FROM node:18.14.2 as builder
+FROM node:20.11.1 as builder
 ARG CONTEXT='/'
 # copy the package.json to install dependencies
-COPY package.json package-lock.json ./
+COPY package.json  ./
 
 # Install the dependencies and make the folders
-RUN npm install && mkdir /react-ui && mv ./node_modules ./react-ui
+RUN yarn config set "strict-ssl" false -g && yarn install && mkdir /react-ui && mv ./node_modules ./react-ui
 
 WORKDIR /react-ui
 
@@ -16,11 +16,11 @@ RUN sed -i "s|"/\basepath"|"${CONTEXT}"|g" .env
 RUN export VCONTEXT=$(echo ${CONTEXT} | sed "s|/||g") && sed -i "s|"CONTEXT"|"${VCONTEXT}"|g" package.json
 
 # Build the project and copy the files
-RUN npm run build
+RUN yarn run build
 
 
 
-FROM node:18.14.2
+FROM node:20.11.1
 ARG CONTEXT='/'
 
 #!/bin/sh
@@ -29,9 +29,9 @@ ARG CONTEXT='/'
 
 # Copy from the stahg 1
 COPY --from=builder /react-ui/build /react-ui/build
-COPY ./server.js /react-ui
+COPY ./server.js  /react-ui
 WORKDIR /react-ui
 
 # USER lazsa
-RUN npm install express
+RUN yarn config set "strict-ssl" false -g && yarn add express
 CMD REACT_APP_CONTEXT=${CONTEXT} node server.js
