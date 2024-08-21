@@ -24,13 +24,10 @@
     "sonar": "sonar-scanner"
   },
   "devDependencies": {
-    "@cfaester/enzyme-adapter-react-18": "^0.6.0",
     "@testing-library/jest-dom": "^6.4.8",
-    "@testing-library/react": "^16.0.0",
+"@testing-library/react": "^15.0.0",
     "babel-jest": "^29.7.0",
-    "enzyme": "^3.11.0",
     "jest": "^29.7.0",
-    "jest-enzyme": "^7.1.2",
     "jest-sonar-reporter": "^2.0.0",
     "sonarqube-scanner": "~4.0.1"
   },
