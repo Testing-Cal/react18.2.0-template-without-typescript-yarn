@@ -4,7 +4,7 @@ import '@testing-library/jest-dom'; // for extended matchers
 import Dashboard from "../dashboard";
 
 // Mocking modules that are not relevant to the actual test
-//jest.mock("highcharts/highcharts-3d");
+jest.mock("highcharts/highcharts-3d");
 
 describe("<Dashboard />", () => {
   it("renders <Dashboard /> component in root", () => {
