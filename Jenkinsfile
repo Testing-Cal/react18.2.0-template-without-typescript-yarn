@@ -153,25 +153,25 @@ def runSeleniumTest() {
 def runCypressTest() {
   def host = getApplicationUrl()
 
-  sh """ 
+  sh """
   cat <<EOL > test.sh
   #!/bin/bash
-  
-  rm -rf node_modules/ mochawesome-report/ cypress/videos/ /cypress/screenshots/ 
+
+  rm -rf node_modules/ mochawesome-report/ cypress/videos/ /cypress/screenshots/
   apt-get update
   apt-get install -y libgbm-dev
   yarn add --save-dev mochawesome
   yarn add mochawesome-merge --save-dev
   yarn
-  case "$env.TESTCASECOMMAND" in 
+  case "$env.TESTCASECOMMAND" in
     *env*)
         # Do stuff
         echo 'case env'
         $env.TESTCASECOMMAND applicationUrl=http://${host}$CONTEXT/ --browser $env.BROWSERTYPE --reporter mochawesome --reporter-options overwrite=false,html=false,json=true,charts=true
         ;;
-    *)  
+    *)
         echo 'case else'
-        $env.TESTCASECOMMAND -- --env applicationUrl=http://${host}$CONTEXT/ --browser $env.BROWSERTYPE --reporter mochawesome --reporter-options overwrite=false,html=false,json=true,charts=true  
+        $env.TESTCASECOMMAND -- --env applicationUrl=http://${host}$CONTEXT/ --browser $env.BROWSERTYPE --reporter mochawesome --reporter-options overwrite=false,html=false,json=true,charts=true
         ;;
   esac
   npx mochawesome-merge mochawesome-report/*.json > mochawesome-report/output.json
@@ -181,7 +181,7 @@ def runCypressTest() {
   """
   sh 'docker run -v "$WORKSPACE"/testcaseRepo:/app -w /app cypress/browsers:node14.19.0-chrome100-ff99-edge /bin/sh test.sh > test.out || true'
   sh 'cat test.out'
-  sh """ 
+  sh """
  awk 'BEGIN { for(i=1;i<=5;i++) printf "*+"; } /(^[ ]*✖.+(failed|pended|pending|skipped|skipping)|^[ ]*✔[ ]+All specs passed).+/ {for(i=4;i>=0;i--) switch (i) {case 4: if( \$(NF-i) ~ /^[0-9]/ ){printf aggr "Tests run: "\$(NF-i) aggr ", ";} else{printf "Tests run: 0, " ;}  break; case 3: if( \$(NF-i) ~ /^[0-9]/ ){printf aggr "Passed: "\$(NF-i) aggr ", "} else{printf "Passed: 0, "} break; case 2: if( \$(NF-i) ~ /^[0-9]/ ){printf aggr "Failures: " \$(NF-i) aggr ", "} else{printf "Failures: 0, "}  break; case 1: if( \$(NF-i) ~ /^[0-9]/ ){printf aggr "Pending: " \$(NF-i) aggr ", "} else{printf "Pending: 0, "} break; case 0: if( \$(NF-i) ~ /^[0-9]/ ){printf aggr "Skipped: " \$(NF-i)} else{printf "Skipped: 0"} break; }} END { for(i=1;i<=5;i++) printf "*+"; }' test.out
   """
   sh 'pwd'
@@ -229,9 +229,9 @@ pipeline {
     STAGE_FLAG = "${STAGE_FLAG}"
     JENKINS_METADATA = "${JENKINS_METADATA}"
 
-    NODE_IMAGE = "public.ecr.aws/lazsa/node:20.11.1" 
+    NODE_IMAGE = "public.ecr.aws/lazsa/node:20.11.1"
     KUBECTL_IMAGE_VERSION = "bitnami/kubectl:1.28" //https://hub.docker.com/r/bitnami/kubectl/tags
-    HELM_IMAGE_VERSION = "alpine/helm:3.8.1" //https://hub.docker.com/r/alpine/helm/tags   
+    HELM_IMAGE_VERSION = "alpine/helm:3.8.1" //https://hub.docker.com/r/alpine/helm/tags
     OC_IMAGE_VERSION = "quay.io/openshift/origin-cli:4.9.0" //https://quay.io/repository/openshift/origin-cli?tab=tags
   }
   stages {
@@ -276,7 +276,7 @@ pipeline {
                     createYamlFile(helm_file,"Helm.yaml")
                 }
             }
-             
+
              def job_name = "$env.JOB_NAME"
              env.BUILD_TAG = "${BUILD_NUMBER}"
              print(job_name)
@@ -285,10 +285,10 @@ pipeline {
                  if (kubeVars.namespace != null && kubeVars.namespace != '') {
                      namespace = kubeVars.namespace
                  }else{
-                    echo "namespace not received"  
+                    echo "namespace not received"
                  }
              }
-             
+
              print("kube namespace: $namespace")
              env.namespace_name = namespace
              if (env.STAGE_FLAG != 'null' && env.STAGE_FLAG != null) {
@@ -351,33 +351,34 @@ pipeline {
                }
                else if ("${list[i]}" == "'SonarQubeScan'" && env.ACTION == 'DEPLOY' && stage_flag['sonarScan']) {
                   stage('SonarQube Scan') {
-                      def sonar_org = "${metadataVars.sonarOrg}";
-                      def sonar_project_key = "${metadataVars.sonarProjectKey}";
+                       env.sonar_org = "${metadataVars.sonarOrg}"
+                       env.sonar_project_key = "${metadataVars.sonarProjectKey}"
+                       env.sonar_host = "${metadataVars.sonarHost}"
 
-                     if (env.SONAR_CREDENTIAL_ID != null && env.SONAR_CREDENTIAL_ID != '') {
-                       withCredentials([usernamePassword(credentialsId: "$SONAR_CREDENTIAL_ID", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                            sh """
-                              sed -i s+#SONAR_URL#+"${metadataVars.sonarHost}"+g ./sonar-project.properties
-                              sed -i s+#SONAR_LOGIN#+$PASSWORD+g ./sonar-project.properties
-                              sed -i s+#RELEASE_NAME#+"${sonar_project_key}"+g ./sonar-project.properties
-                              sed -i s+#SONAR_ORGANIZATION#+"${metadataVars.sonarOrg}"+g ./sonar-project.properties
-                              docker run --rm --user root -v "$WORKSPACE":/opt/repo -w /opt/repo $NODE_IMAGE /bin/bash -c "chown -R root:root /opt/repo && yarn add sonarqube-scanner -f && yarn run sonar"
-                              sudo chown -R `id -u`:`id -g` "$WORKSPACE"
-                            """
-                          }        
-                    }
-                     else{
-                             withSonarQubeEnv('pg-sonar') {
-                             sh """
-                              sed -i s+#SONAR_URL#+$SONAR_HOST_URL+g ./sonar-project.properties
-                              sed -i s+#SONAR_LOGIN#+$SONAR_AUTH_TOKEN+g ./sonar-project.properties
-                              sed -i s+#RELEASE_NAME#+"${sonar_project_key}"+g ./sonar-project.properties
-                              sed -i s+#SONAR_ORGANIZATION#+"${metadataVars.sonarOrg}"+g ./sonar-project.properties
-                              docker run --rm --user root -v "$WORKSPACE":/opt/repo -w /opt/repo $NODE_IMAGE /bin/bash -c "chown -R root:root /opt/repo && yarn add sonarqube-scanner -f && yarn run sonar"
-                              sudo chown -R `id -u`:`id -g` "$WORKSPACE"
-                            """
-                          }
-                    }
+                       if (env.SONAR_CREDENTIAL_ID != null && env.SONAR_CREDENTIAL_ID != '') {
+                           withCredentials([usernamePassword(credentialsId: "$SONAR_CREDENTIAL_ID", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                               sh '''
+                                 sed -i s+#SONAR_URL#+"$sonar_host"+g ./sonar-project.properties
+                                 sed -i s+#SONAR_LOGIN#+$PASSWORD+g ./sonar-project.properties
+                                 sed -i s+#RELEASE_NAME#+"$sonar_project_key"+g ./sonar-project.properties
+                                 sed -i s+#SONAR_ORGANIZATION#+"$sonar_org"+g ./sonar-project.properties
+                                 docker run --rm --user root -v "$WORKSPACE":/opt/repo -w /opt/repo $NODE_IMAGE /bin/bash -c "chown -R root:root /opt/repo && yarn add sonarqube-scanner -f && yarn run sonar"
+                                 sudo chown -R `id -u`:`id -g` "$WORKSPACE"
+                               '''
+                           }
+                       }
+                       else{
+                           withSonarQubeEnv('pg-sonar') {
+                               sh '''
+                                 sed -i s+#SONAR_URL#+$SONAR_HOST_URL+g ./sonar-project.properties
+                                 sed -i s+#SONAR_LOGIN#+$SONAR_AUTH_TOKEN+g ./sonar-project.properties
+                                 sed -i s+#RELEASE_NAME#+"$sonar_project_key"+g ./sonar-project.properties
+                                 sed -i s+#SONAR_ORGANIZATION#+"$sonar_org"+g ./sonar-project.properties
+                                 docker run --rm --user root -v "$WORKSPACE":/opt/repo -w /opt/repo $NODE_IMAGE /bin/bash -c "chown -R root:root /opt/repo && yarn add sonarqube-scanner -f && yarn run sonar"
+                                 sudo chown -R `id -u`:`id -g` "$WORKSPACE"
+                               '''
+                           }
+                       }
                   }
                 }
                 else if ("${list[i]}" == "'ContainerImageScan'" && stage_flag['containerScan']) {
@@ -566,10 +567,11 @@ pipeline {
                            if (env.DEPLOYMENT_TYPE == 'KUBERNETES' || env.DEPLOYMENT_TYPE == 'OPENSHIFT') {
 
                             withCredentials([file(credentialsId: "$KUBE_SECRET", variable: 'KUBECONFIG'), usernamePassword(credentialsId: "$ARTIFACTORY_CREDENTIALS", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                                sh """
-                                    sed -i s+#SERVICE_NAME#+"${metadataVars.helmReleaseName}"+g ./helm_chart/values.yaml ./helm_chart/Chart.yaml
+                                env.helmReleaseName = "${metadataVars.helmReleaseName}"
+                                sh '''
+                                    sed -i s+#SERVICE_NAME#+"$helmReleaseName"+g ./helm_chart/values.yaml ./helm_chart/Chart.yaml
                                     docker run --rm  --user root -v "$KUBECONFIG":"$KUBECONFIG" -e KUBECONFIG="$KUBECONFIG" $KUBECTL_IMAGE_VERSION create ns "$namespace_name" || true
-                                """
+                                '''
 
                                 if (env.DEPLOYMENT_TYPE == 'OPENSHIFT') {
                                     sh '''
@@ -598,15 +600,15 @@ pipeline {
                                          docker run --rm  --user root -v "$KUBECONFIG":"$KUBECONFIG" -e KUBECONFIG="$KUBECONFIG" $KUBECTL_IMAGE_VERSION -n "$namespace_name" create secret docker-registry $kube_secret_name_for_registry --docker-server="$ACR_LOGIN_URL" --docker-username="\"$USERNAME\"" --docker-password="\"$PASSWORD\"" || true
                                        '''
                                    }
-                                   sh """
+                                   sh '''
                                    ls -lart
                                    echo "context: $CONTEXT" >> Helm.yaml
                                    cat Helm.yaml
-                                   sed -i s+#SERVICE_NAME#+"${metadataVars.helmReleaseName}"+g ./helm_chart/values.yaml ./helm_chart/Chart.yaml
-                                   docker run --rm  --user root -v "$KUBECONFIG":"$KUBECONFIG" -e KUBECONFIG="$KUBECONFIG" -v "$WORKSPACE":/apps -w /apps $HELM_IMAGE_VERSION upgrade --install "${metadataVars.helmReleaseName}" -n "$namespace_name" helm_chart --atomic --timeout 300s --set image.repository="$REGISTRY_URL" --set image.tag="$BUILD_TAG" --set image.registrySecret="$kube_secret_name_for_registry"  --set service.internalport="$SERVICE_PORT" -f Helm.yaml
-                                   """
+                                   sed -i s+#SERVICE_NAME#+"$helmReleaseName"+g ./helm_chart/values.yaml ./helm_chart/Chart.yaml
+                                   docker run --rm  --user root -v "$KUBECONFIG":"$KUBECONFIG" -e KUBECONFIG="$KUBECONFIG" -v "$WORKSPACE":/apps -w /apps $HELM_IMAGE_VERSION upgrade --install "$helmReleaseName" -n "$namespace_name" helm_chart --atomic --timeout 300s --set image.repository="$REGISTRY_URL" --set image.tag="$BUILD_TAG" --set image.registrySecret="$kube_secret_name_for_registry"  --set service.internalport="$SERVICE_PORT" -f Helm.yaml
+                                   '''
                                 }
-                           } 
+                           }
                        }
                    }
                }
@@ -632,9 +634,10 @@ pipeline {
                  }
                  if (env.DEPLOYMENT_TYPE == 'KUBERNETES' || env.DEPLOYMENT_TYPE == 'OPENSHIFT') {
                    withCredentials([file(credentialsId: "$KUBE_SECRET", variable: 'KUBECONFIG')]) {
-                      sh """
-                        docker run --rm  --user root -v "$KUBECONFIG":"$KUBECONFIG" -e KUBECONFIG="$KUBECONFIG" -v "$WORKSPACE":/apps -w /apps $HELM_IMAGE_VERSION uninstall "${metadataVars.helmReleaseName}" -n "$namespace_name"
-                      """
+                      env.helmReleaseName = "${metadataVars.helmReleaseName}"
+                      sh '''
+                        docker run --rm  --user root -v "$KUBECONFIG":"$KUBECONFIG" -e KUBECONFIG="$KUBECONFIG" -v "$WORKSPACE":/apps -w /apps $HELM_IMAGE_VERSION uninstall "$helmReleaseName" -n "$namespace_name"
+                      '''
                    }
                  }
                 }
@@ -645,10 +648,10 @@ pipeline {
       }
    }
    post {
-        always { 
+        always {
             sh """ sudo chown -R `id -u`:`id -g` "$WORKSPACE"* """
             pushToCollector()
-        }       
+        }
         cleanup {
                 sh 'docker  rmi  $REGISTRY_URL:$BUILD_TAG $REGISTRY_URL:latest || true'
         }
